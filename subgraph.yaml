@@ -1,35 +1,30 @@
-specVersion: 0.0.1
+specVersion: 0.0.5
 schema:
   file: ./schema.graphql
 dataSources:
   - kind: ethereum/contract
     name: MurAll
-    network: mainnet
+    # network: mainnet
+    network: matic
     source:
-      address: "0x6442bDfd16352726AA25Ad6b3CBAb3865c05ED15"
+      # address: "0x6442bDfd16352726AA25Ad6b3CBAb3865c05ED15" # MurAll contract address on Ethereum mainnet
+      # startBlock: 11703881 # MurAll contract deployment block on Ethereum mainnet
+      # startBlock: 16086393 # Dec 1st block on Ethereum mainnet
+      address: "0x5647b9D293E31076c859361E1499f5c29724FA97" # MurAll contract address on Polygon mainnet
+      # startBlock: 13114876 # MurAll contract deployment block on Polygon mainnet
+      startBlock: 36273116 # Dec 1st block on Polygon mainnet
       abi: MurAll
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.2
+      apiVersion: 0.0.7
       language: wasm/assemblyscript
       entities:
-        - NewDataValidatorSet
         - Painted
-        - RoleAdminChanged
-        - RoleGranted
-        - RoleRevoked
       abis:
         - name: MurAll
           file: ./abis/MurAll.json
       eventHandlers:
-        - event: NewDataValidatorSet(address)
-          handler: handleNewDataValidatorSet
         - event: Painted(indexed address,indexed uint256,uint256[],uint256[],uint256[],uint256[],uint256[],uint256[],uint256[2])
           handler: handlePainted
-        - event: RoleAdminChanged(indexed bytes32,indexed bytes32,indexed bytes32)
-          handler: handleRoleAdminChanged
-        - event: RoleGranted(indexed bytes32,indexed address,indexed address)
-          handler: handleRoleGranted
-        - event: RoleRevoked(indexed bytes32,indexed address,indexed address)
-          handler: handleRoleRevoked
+          receipt: true   
       file: ./src/mapping.ts

@@ -1,5 +1,15 @@
-type ExampleEntity @entity {
+type ArtistInfo @entity {
   id: ID!
-  count: BigInt!
-  dataValidator: Bytes! # address
+  totalPaintBurned: BigDecimal!
+  totalPaintBurnedCorrectDp: BigDecimal!
+  totalPixelsDrawn: BigDecimal!
+}
+
+type PaintedEventInfo @entity {
+  id: ID!
+  artist: Bytes!
+  paintBurnedRaw: Bytes!
+  paintBurned: BigDecimal!
+  paintBurnedCorrectDp: BigDecimal!
+  pixelsDrawn: BigDecimal!
 }

@@ -1,71 +1,66 @@
-import { BigInt } from "@graphprotocol/graph-ts"
+import { BigInt, ethereum,Address, log, crypto, ByteArray, BigDecimal, Bytes   } from "@graphprotocol/graph-ts"
 import {
   MurAll,
   NewDataValidatorSet,
   Painted,
   RoleAdminChanged,
   RoleGranted,
-  RoleRevoked
+  RoleRevoked,
+  SetPixelsCall
 } from "../generated/MurAll/MurAll"
-import { ExampleEntity } from "../generated/schema"
+import { ArtistInfo, PaintedEventInfo } from "../generated/schema"
+import { BIGDECIMAL_TWO, BIGDECIMAL_ZERO, BIGINT_TWO, BIGINT_ZERO, PAINT_TOKEN_ADDRESS_ETH, PAINT_TOKEN_ADDRESS_POLYGON, toDp, ZERO_ADDRESS } from "./constants"
 
-export function handleNewDataValidatorSet(event: NewDataValidatorSet): void {
-  // Entities can be loaded from the store using a string ID; this ID
-  // needs to be unique across all entities of the same type
-  let entity = ExampleEntity.load(event.transaction.from.toHex())
 
-  // Entities only exist after they have been saved to the store;
-  // `null` checks allow to create entities on demand
-  if (entity == null) {
-    entity = new ExampleEntity(event.transaction.from.toHex())
 
-    // Entity fields can be set using simple assignments
-    entity.count = BigInt.fromI32(0)
+export function handlePainted(event: Painted): void {
+  let receipt = event.receipt
+  if(receipt == null) {
+    log.error("receipt is null", [])
+    return
   }
+  // loop through logs and find the erc20 transfer event to zero address
+  for (let i = 0; i < receipt.logs.length; i++) {
+    let txLog = receipt.logs[i]
+         
+    if (txLog != null && txLog.topics[0] == crypto.keccak256(ByteArray.fromUTF8("Transfer(address,address,uint256)"))) {
+      let to = Address.fromString("0x"+txLog.topics[2].toHexString().slice(26))
+      
+      if(to == ZERO_ADDRESS && txLog.address == PAINT_TOKEN_ADDRESS_POLYGON) {
+        // burn event
+        log.warning("Burn event {}", [event.transaction.hash.toHexString()])
 
-  // BigInt and BigDecimal math are supported
-  entity.count = entity.count + BigInt.fromI32(1)
+        let from = Address.fromString("0x"+txLog.topics[1].toHexString().slice(26)) as Address
+        let artistInfo = getArtistInfo(from)
+        
+        let paintBurned = BigInt.fromUnsignedBytes(Bytes.fromUint8Array(txLog.data.reverse())).toBigDecimal()
+        let paintBurnedDp = toDp(paintBurned, 18)
+        artistInfo.totalPixelsDrawn = artistInfo.totalPixelsDrawn.plus(paintBurnedDp.times(BIGDECIMAL_TWO))
+        artistInfo.totalPaintBurned = artistInfo.totalPaintBurned.plus(paintBurned)
+        artistInfo.totalPaintBurnedCorrectDp = artistInfo.totalPaintBurnedCorrectDp.plus(paintBurnedDp)
+        artistInfo.save()
 
-  // Entity fields can be set based on event parameters
-  entity.dataValidator = event.params.dataValidator
-
-  // Entities can be written to the store with `.save()`
-  entity.save()
-
-  // Note: If a handler doesn't require existing field values, it is faster
-  // _not_ to load the entity from the store. Instead, create it fresh with
-  // `new Entity(...)`, set the fields that should be updated and save the
-  // entity back to the store. Fields that were not set or unset remain
-  // unchanged, allowing for partial updates to be applied.
-
-  // It is also possible to access smart contracts from mappings. For
-  // example, the contract that has emitted the event can be connected to
-  // with:
-  //
-  // let contract = Contract.bind(event.address)
-  //
-  // The following functions can then be called on this contract to access
-  // state variables and other data:
-  //
-  // - contract.ADMIN_ROLE(...)
-  // - contract.DEFAULT_ADMIN_ROLE(...)
-  // - contract.artists(...)
-  // - contract.dataValidator(...)
-  // - contract.getCostPerPixel(...)
-  // - contract.getRoleAdmin(...)
-  // - contract.getRoleMember(...)
-  // - contract.getRoleMemberCount(...)
-  // - contract.hasRole(...)
-  // - contract.isArtist(...)
-  // - contract.murAllNFT(...)
-  // - contract.paintToken(...)
-  // - contract.totalArtists(...)
+        let paintedEventInfo = new PaintedEventInfo(event.transaction.hash.toHexString())
+        paintedEventInfo.artist = from
+        paintedEventInfo.paintBurnedRaw = txLog.data
+        paintedEventInfo.paintBurned = paintBurned
+        paintedEventInfo.paintBurnedCorrectDp = toDp(paintBurned, 18)
+        paintedEventInfo.pixelsDrawn = toDp(paintBurned, 18).times(BIGDECIMAL_TWO)
+        paintedEventInfo.save()
+      }
+    }
+    
+  }
 }
 
-export function handlePainted(event: Painted): void {}
-
-export function handleRoleAdminChanged(event: RoleAdminChanged): void {}
-
-export function handleRoleGranted(event: RoleGranted): void {}
-
-export function handleRoleRevoked(event: RoleRevoked): void {}
+function getArtistInfo (address: Address): ArtistInfo {
+  let artistInfo = ArtistInfo.load(address.toHexString())
+  if (artistInfo == null) {
+    artistInfo = new ArtistInfo(address.toHexString())
+    artistInfo.totalPaintBurned = BIGDECIMAL_ZERO
+    artistInfo.totalPaintBurnedCorrectDp = BIGDECIMAL_ZERO
+    artistInfo.totalPixelsDrawn = BIGDECIMAL_ZERO
+    artistInfo.save()
+  }
+  return artistInfo
+}
