@@ -5,12 +5,16 @@
     "codegen": "graph codegen",
     "build": "graph build",
     "deploy": "graph deploy --node https://api.thegraph.com/deploy/ murall-art/murall-nyr-eth",
+    "deploy-nyr-eth": "graph deploy --product hosted-service murall-art/murall-nyr-polygon",
+    "deploy-nyr-polygon": "graph deploy --product hosted-service murall-art/murall-nyr-eth",
+    "deploy-l1stats": "graph deploy --product hosted-service murall-art/murall-l1-stats",
+    "deploy-l2stats": "graph deploy --product hosted-service murall-art/murall-l2-stats",
     "create-local": "graph create --node http://localhost:8020/ murall-art/murall-nyr-eth",
     "remove-local": "graph remove --node http://localhost:8020/ murall-art/murall-nyr-eth",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 murall-art/murall-nyr-eth"
   },
   "dependencies": {
-    "@graphprotocol/graph-cli": "0.21.1",
-    "@graphprotocol/graph-ts": "^0.29.0"
+    "@graphprotocol/graph-cli": "0.37.1",
+    "@graphprotocol/graph-ts": "^0.29.1"
   }
 }

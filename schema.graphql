@@ -5,6 +5,13 @@ type ArtistInfo @entity {
   totalPixelsDrawn: BigDecimal!
 }
 
+type MurAllInfo @entity {
+  id: ID!
+  totalPaintBurned: BigDecimal!
+  totalPaintBurnedCorrectDp: BigDecimal!
+  totalPixelsDrawn: BigDecimal!
+}
+
 type PaintedEventInfo @entity {
   id: ID!
   artist: Bytes!
